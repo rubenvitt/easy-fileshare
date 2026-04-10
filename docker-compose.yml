@@ -2,7 +2,7 @@ services:
   app:
     image: ghcr.io/rubenvitt/easy-fileshare:main
     ports:
-      - "${PORT:-3000}:3000"
+      - "${PORT:-3000}:${PORT:-3000}"
     env_file:
       - .env
     environment:

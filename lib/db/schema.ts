@@ -31,3 +31,16 @@ export const shareFiles = sqliteTable("share_files", {
     .notNull()
     .$defaultFn(() => Math.floor(Date.now() / 1000)),
 });
+
+export const downloadLogs = sqliteTable("download_logs", {
+  id: text("id").primaryKey(),
+  shareId: text("share_id")
+    .notNull()
+    .references(() => shares.id, { onDelete: "cascade" }),
+  fileId: text("file_id"),
+  ip: text("ip"),
+  userAgent: text("user_agent"),
+  downloadedAt: integer("downloaded_at")
+    .notNull()
+    .$defaultFn(() => Math.floor(Date.now() / 1000)),
+});
