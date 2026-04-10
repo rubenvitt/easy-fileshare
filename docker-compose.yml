@@ -7,6 +7,7 @@ services:
       - .env
     environment:
       - DATABASE_URL=/data/db.sqlite
+      - S3_ENDPOINT=http://minio:9000
     volumes:
       - db-data:/data
     depends_on:
@@ -27,7 +28,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # Create the default bucket on first start
   minio-init:
     image: minio/mc
     depends_on:
