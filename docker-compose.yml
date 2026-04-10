@@ -10,6 +10,12 @@ services:
       - S3_ENDPOINT=http://minio:9000
     volumes:
       - db-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
     depends_on:
       minio:
         condition: service_healthy
