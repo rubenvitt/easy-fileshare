@@ -34,6 +34,7 @@ const devProvider = Credentials({
 });
 
 export const authConfig: NextAuthConfig = {
+  trustHost: true,
   providers: isDevMode ? [devProvider] : [oidcProvider],
   secret: process.env.NEXTAUTH_SECRET,
   session: { strategy: "jwt" },
