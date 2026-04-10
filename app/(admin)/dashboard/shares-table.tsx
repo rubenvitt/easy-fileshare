@@ -26,15 +26,21 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { formatBytes, formatRelativeTime, formatDate, isExpired } from "@/lib/format";
 import { deleteShare, addDownloads } from "./actions";
+import { QRCodeSVG } from "qrcode.react";
+import Link from "next/link";
 import {
   Copy,
   ExternalLink,
   File,
   Folder,
+  Info,
   Lock,
   MoreHorizontal,
+  Pencil,
   Plus,
+  QrCode,
   Trash2,
+  X,
 } from "lucide-react";
 
 interface Share {
@@ -62,6 +68,7 @@ interface SharesTableProps {
 export function SharesTable({ shares }: SharesTableProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [qrShareId, setQrShareId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const appUrl =
@@ -227,12 +234,26 @@ export function SharesTable({ shares }: SharesTableProps) {
                           : "Link kopieren"}
                       </DropdownMenuItem>
                       <DropdownMenuItem
+                        onClick={() => setQrShareId(share.id)}
+                      >
+                        <QrCode className="size-4" />
+                        QR-Code
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
                         onClick={() =>
                           window.open(`/s/${share.id}`, "_blank")
                         }
                       >
                         <ExternalLink className="size-4" />
                         Sharing öffnen
+                      </DropdownMenuItem>
+                      <DropdownMenuItem render={<Link href={`/shares/${share.id}/edit`} />}>
+                        <Pencil className="size-4" />
+                        Bearbeiten
+                      </DropdownMenuItem>
+                      <DropdownMenuItem render={<Link href={`/shares/${share.id}`} />}>
+                        <Info className="size-4" />
+                        Details
                       </DropdownMenuItem>
                       {share.maxDownloads != null && (
                         <DropdownMenuItem
@@ -261,6 +282,24 @@ export function SharesTable({ shares }: SharesTableProps) {
           })}
         </TableBody>
       </Table>
+      {qrShareId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setQrShareId(null)}>
+          <div className="bg-background rounded-xl p-8 shadow-xl max-w-sm w-full mx-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-semibold text-lg">QR-Code</h3>
+              <Button variant="ghost" size="icon-sm" onClick={() => setQrShareId(null)}>
+                <X className="size-4" />
+              </Button>
+            </div>
+            <div className="flex justify-center mb-4">
+              <QRCodeSVG value={`${appUrl}/s/${qrShareId}`} size={220} />
+            </div>
+            <p className="text-sm text-muted-foreground text-center break-all">
+              {appUrl}/s/{qrShareId}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

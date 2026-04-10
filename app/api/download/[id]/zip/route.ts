@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { shares, shareFiles } from "@/lib/db/schema";
+import { shares, shareFiles, downloadLogs } from "@/lib/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { getObjectStream } from "@/lib/s3/operations";
+import { nanoid } from "nanoid";
 import archiver from "archiver";
 import { Readable, PassThrough } from "node:stream";
 
@@ -12,7 +13,7 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-export async function GET(_req: NextRequest, { params }: RouteParams) {
+export async function GET(req: NextRequest, { params }: RouteParams) {
   const { id } = await params;
 
   const share = await db.query.shares.findFirst({
@@ -63,6 +64,14 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
         : {}),
     })
     .where(eq(shares.id, id));
+
+  await db.insert(downloadLogs).values({
+    id: nanoid(10),
+    shareId: id,
+    fileId: null,
+    ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? req.headers.get("x-real-ip") ?? null,
+    userAgent: req.headers.get("user-agent") ?? null,
+  });
 
   const passthrough = new PassThrough();
   const archive = archiver("zip", { zlib: { level: 1 } });

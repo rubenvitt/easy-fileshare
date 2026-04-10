@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { desc, sql } from "drizzle-orm";
+import { desc, gte, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { shares, shareFiles } from "@/lib/db/schema";
+import { shares, shareFiles, downloadLogs } from "@/lib/db/schema";
 import { isExpired } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -45,8 +45,11 @@ export default async function DashboardPage() {
     (sum, s) => sum + s.downloadCount,
     0
   );
-  // We approximate "downloads today" — in production you'd track this separately
-  const downloadsToday = 0;
+  const downloadsToday = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(downloadLogs)
+    .where(gte(downloadLogs.downloadedAt, startOfDay))
+    .then((r) => r[0]?.count ?? 0);
   const totalSize = allShares.reduce((sum, s) => sum + s.totalSize, 0);
 
   // Enrich shares with file info

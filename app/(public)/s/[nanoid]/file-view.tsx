@@ -2,6 +2,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { formatBytes } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { FilePreview } from "@/components/file-preview";
 import type { shares, shareFiles } from "@/lib/db/schema";
 import type { InferSelectModel } from "drizzle-orm";
 
@@ -35,6 +36,13 @@ export function FileView({ share, file }: FileViewProps) {
           {share.description}
         </div>
       )}
+
+      <FilePreview
+        shareId={share.id}
+        fileId={file.id}
+        mimeType={file.mimeType}
+        filename={file.filename}
+      />
 
       <a
         href={`/api/download/${share.id}?file=${file.id}`}

@@ -1,9 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { shares, shareFiles, downloadLogs } from "@/lib/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { shares, shareFiles } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { getObjectStream } from "@/lib/s3/operations";
-import { nanoid } from "nanoid";
+
+const PREVIEWABLE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/svg+xml",
+  "application/pdf",
+  "text/plain",
+  "text/markdown",
+  "text/csv",
+  "application/json",
+]);
 
 const GRACE_PERIOD_HOURS = Number(process.env.GRACE_PERIOD_HOURS ?? 24);
 
@@ -32,7 +44,10 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
   if (share.limitReachedAt) {
     const graceExpiry = share.limitReachedAt + GRACE_PERIOD_HOURS * 3600;
     if (now >= graceExpiry) {
-      return NextResponse.json({ error: "Download limit reached" }, { status: 410 });
+      return NextResponse.json(
+        { error: "Download limit reached" },
+        { status: 410 }
+      );
     }
   }
 
@@ -41,19 +56,24 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     share.downloadCount >= share.maxDownloads &&
     !share.limitReachedAt
   ) {
-    // Limit just reached — don't block yet, start grace period
-    // (this request still gets served, grace blocks future ones after period)
+    // Limit just reached but no grace period started yet — allow preview
   }
 
   if (
     share.maxDownloads !== null &&
     share.downloadCount >= share.maxDownloads
   ) {
-    return NextResponse.json({ error: "Download limit reached" }, { status: 410 });
+    return NextResponse.json(
+      { error: "Download limit reached" },
+      { status: 410 }
+    );
   }
 
   if (!fileId) {
-    return NextResponse.json({ error: "Missing file parameter" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Missing file parameter" },
+      { status: 400 }
+    );
   }
 
   const file = await db.query.shareFiles.findFirst({
@@ -64,35 +84,28 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "File not found" }, { status: 404 });
   }
 
-  const { stream, contentLength, contentType } = await getObjectStream(file.s3Key);
+  if (!PREVIEWABLE_TYPES.has(file.mimeType)) {
+    return NextResponse.json(
+      { error: "File type not previewable" },
+      { status: 404 }
+    );
+  }
 
-  const newCount = share.downloadCount + 1;
-  const limitJustReached =
-    share.maxDownloads !== null && newCount >= share.maxDownloads;
+  const { stream, contentLength, contentType } = await getObjectStream(
+    file.s3Key
+  );
 
-  await db
-    .update(shares)
-    .set({
-      downloadCount: sql`${shares.downloadCount} + 1`,
-      ...(limitJustReached && !share.limitReachedAt
-        ? { limitReachedAt: now }
-        : {}),
-    })
-    .where(eq(shares.id, id));
-
-  await db.insert(downloadLogs).values({
-    id: nanoid(10),
-    shareId: id,
-    fileId: fileId,
-    ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? req.headers.get("x-real-ip") ?? null,
-    userAgent: req.headers.get("user-agent") ?? null,
-  });
+  const isText =
+    file.mimeType.startsWith("text/") || file.mimeType === "application/json";
 
   return new Response(stream as ReadableStream, {
     headers: {
-      "Content-Type": contentType ?? "application/octet-stream",
-      "Content-Disposition": `attachment; filename="${encodeURIComponent(file.filename)}"`,
+      "Content-Type": isText
+        ? `${contentType ?? file.mimeType}; charset=utf-8`
+        : contentType ?? file.mimeType,
+      "Content-Disposition": `inline; filename="${encodeURIComponent(file.filename)}"`,
       ...(contentLength ? { "Content-Length": String(contentLength) } : {}),
+      "Cache-Control": "private, max-age=3600",
     },
   });
 }
