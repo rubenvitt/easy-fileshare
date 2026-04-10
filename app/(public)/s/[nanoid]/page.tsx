@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { PasswordGate } from "./password-gate";
 import { FileView } from "./file-view";
 import { FolderView } from "./folder-view";
+import { LuClock, LuBan } from "react-icons/lu";
 
 interface PageProps {
   params: Promise<{ nanoid: string }>;
@@ -58,7 +59,7 @@ export default async function SharePage({ params }: PageProps) {
 function ExpiredView() {
   return (
     <div className="text-center py-20">
-      <div className="text-5xl mb-4 opacity-30">⏰</div>
+      <LuClock className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
       <h1 className="text-xl font-semibold mb-2">Sharing abgelaufen</h1>
       <p className="text-muted-foreground">
         Dieses Sharing ist nicht mehr verfügbar.
@@ -70,7 +71,7 @@ function ExpiredView() {
 function LimitReachedView() {
   return (
     <div className="text-center py-20">
-      <div className="text-5xl mb-4 opacity-30">🚫</div>
+      <LuBan className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
       <h1 className="text-xl font-semibold mb-2">Download-Limit erreicht</h1>
       <p className="text-muted-foreground">
         Die maximale Anzahl an Downloads wurde erreicht.

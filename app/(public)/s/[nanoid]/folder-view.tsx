@@ -1,5 +1,6 @@
 import { buttonVariants } from "@/components/ui/button";
 import { Download, FolderOpen } from "lucide-react";
+import { LuFile } from "react-icons/lu";
 import { formatBytes } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { shares, shareFiles } from "@/lib/db/schema";
@@ -44,7 +45,7 @@ export function FolderView({ share, files }: FolderViewProps) {
             className="flex items-center justify-between px-4 py-2.5 text-sm"
           >
             <div className="flex items-center gap-2 min-w-0">
-              <span className="text-muted-foreground">📄</span>
+              <LuFile className="h-4 w-4 text-muted-foreground" />
               <span className="truncate">{file.filename}</span>
               <span className="text-xs text-muted-foreground flex-shrink-0">
                 {formatBytes(file.size)}

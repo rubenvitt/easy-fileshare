@@ -9,6 +9,7 @@ export const shares = sqliteTable("shares", {
   expiresAt: integer("expires_at").notNull(),
   maxDownloads: integer("max_downloads"),
   downloadCount: integer("download_count").notNull().default(0),
+  limitReachedAt: integer("limit_reached_at"),
   totalSize: integer("total_size").notNull().default(0),
   createdAt: integer("created_at")
     .notNull()

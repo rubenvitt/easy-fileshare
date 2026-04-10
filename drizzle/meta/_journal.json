@@ -8,6 +8,13 @@
       "when": 1775845795002,
       "tag": "0000_demonic_boom_boom",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1775847621904,
+      "tag": "0001_low_stellaris",
+      "breakpoints": true
     }
   ]
 }

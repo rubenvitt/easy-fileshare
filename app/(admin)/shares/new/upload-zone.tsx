@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { cn } from "@/lib/utils";
+import { LuFolderUp, LuFile, LuX } from "react-icons/lu";
 
 interface UploadFile {
   file: File;
@@ -65,7 +66,7 @@ export function UploadZone({ files, onFilesChange, maxFileSize }: UploadZoneProp
           input.click();
         }}
       >
-        <div className="text-3xl mb-2 opacity-30">📂</div>
+        <LuFolderUp className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
         <div className="font-medium">Dateien hierher ziehen</div>
         <div className="text-sm text-muted-foreground">
           oder klicken zum Auswählen · max.{" "}
@@ -81,7 +82,7 @@ export function UploadZone({ files, onFilesChange, maxFileSize }: UploadZoneProp
               className="flex items-center justify-between px-4 py-2.5 text-sm"
             >
               <div className="flex items-center gap-2 min-w-0">
-                <span className="opacity-50">📄</span>
+                <LuFile className="h-4 w-4 text-muted-foreground" />
                 <span className="truncate">{f.file.name}</span>
                 <span className="text-xs text-muted-foreground flex-shrink-0">
                   {formatSize(f.file.size)}
@@ -95,7 +96,7 @@ export function UploadZone({ files, onFilesChange, maxFileSize }: UploadZoneProp
                 }}
                 className="text-muted-foreground hover:text-destructive ml-2"
               >
-                ✕
+                <LuX className="h-4 w-4" />
               </button>
             </div>
           ))}

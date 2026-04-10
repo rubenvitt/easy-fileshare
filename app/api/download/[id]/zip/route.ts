@@ -6,6 +6,8 @@ import { getObjectStream } from "@/lib/s3/operations";
 import archiver from "archiver";
 import { Readable, PassThrough } from "node:stream";
 
+const GRACE_PERIOD_HOURS = Number(process.env.GRACE_PERIOD_HOURS ?? 24);
+
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
@@ -26,6 +28,13 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "Expired" }, { status: 410 });
   }
 
+  if (share.limitReachedAt) {
+    const graceExpiry = share.limitReachedAt + GRACE_PERIOD_HOURS * 3600;
+    if (now >= graceExpiry) {
+      return NextResponse.json({ error: "Download limit reached" }, { status: 410 });
+    }
+  }
+
   if (
     share.maxDownloads !== null &&
     share.downloadCount >= share.maxDownloads
@@ -41,9 +50,18 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "No files" }, { status: 404 });
   }
 
+  const newCount = share.downloadCount + 1;
+  const limitJustReached =
+    share.maxDownloads !== null && newCount >= share.maxDownloads;
+
   await db
     .update(shares)
-    .set({ downloadCount: sql`${shares.downloadCount} + 1` })
+    .set({
+      downloadCount: sql`${shares.downloadCount} + 1`,
+      ...(limitJustReached && !share.limitReachedAt
+        ? { limitReachedAt: now }
+        : {}),
+    })
     .where(eq(shares.id, id));
 
   const passthrough = new PassThrough();

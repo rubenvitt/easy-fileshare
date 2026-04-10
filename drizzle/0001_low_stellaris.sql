@@ -1,0 +1,1 @@
+ALTER TABLE `shares` ADD `limit_reached_at` integer;

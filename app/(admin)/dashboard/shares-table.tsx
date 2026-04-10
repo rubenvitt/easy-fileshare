@@ -25,7 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatBytes, formatRelativeTime, formatDate, isExpired } from "@/lib/format";
-import { deleteShare } from "./actions";
+import { deleteShare, addDownloads } from "./actions";
 import {
   Copy,
   ExternalLink,
@@ -33,6 +33,7 @@ import {
   Folder,
   Lock,
   MoreHorizontal,
+  Plus,
   Trash2,
 } from "lucide-react";
 
@@ -49,6 +50,7 @@ interface Share {
   createdAt: number;
   createdBy: string;
   s3Prefix: string;
+  limitReachedAt: number | null;
   fileCount?: number;
   fileName?: string | null;
 }
@@ -72,6 +74,16 @@ export function SharesTable({ shares }: SharesTableProps) {
     navigator.clipboard.writeText(url);
     setCopiedId(shareId);
     setTimeout(() => setCopiedId(null), 2000);
+  }
+
+  function handleAddDownloads(shareId: string) {
+    const amount = prompt("Wie viele Downloads hinzufügen?", "10");
+    if (!amount) return;
+    const num = parseInt(amount, 10);
+    if (isNaN(num) || num <= 0) return;
+    startTransition(async () => {
+      await addDownloads(shareId, num);
+    });
   }
 
   function handleDelete(shareId: string) {
@@ -172,6 +184,11 @@ export function SharesTable({ shares }: SharesTableProps) {
                     {" / "}
                     {share.maxDownloads != null ? share.maxDownloads : "\u221E"}
                   </span>
+                  {share.limitReachedAt && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                      Limit erreicht
+                    </p>
+                  )}
                 </TableCell>
 
                 {/* Password protection */}
@@ -217,6 +234,14 @@ export function SharesTable({ shares }: SharesTableProps) {
                         <ExternalLink className="size-4" />
                         Sharing öffnen
                       </DropdownMenuItem>
+                      {share.maxDownloads != null && (
+                        <DropdownMenuItem
+                          onClick={() => handleAddDownloads(share.id)}
+                        >
+                          <Plus className="size-4" />
+                          Downloads nachbuchen
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         className="text-destructive focus:text-destructive"
