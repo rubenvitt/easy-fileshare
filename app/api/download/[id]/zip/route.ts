@@ -4,10 +4,13 @@ import { shares, shareFiles, downloadLogs } from "@/lib/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { getObjectStream } from "@/lib/s3/operations";
 import { nanoid } from "nanoid";
-import archiver from "archiver";
+import * as archiverModule from "archiver";
 import { Readable, PassThrough } from "node:stream";
 
 const GRACE_PERIOD_HOURS = Number(process.env.GRACE_PERIOD_HOURS ?? 24);
+const { ZipArchive } = archiverModule as unknown as {
+  ZipArchive: new (options?: archiverModule.ArchiverOptions) => archiverModule.Archiver;
+};
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -74,7 +77,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
   });
 
   const passthrough = new PassThrough();
-  const archive = archiver("zip", { zlib: { level: 1 } });
+  const archive = new ZipArchive({ zlib: { level: 1 } });
   archive.pipe(passthrough);
 
   (async () => {

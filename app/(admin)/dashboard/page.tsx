@@ -33,6 +33,7 @@ export default async function DashboardPage() {
   );
 
   // Calculate statistics
+  // eslint-disable-next-line react-hooks/purity -- Server component value is evaluated per request.
   const now = Math.floor(Date.now() / 1000);
   const startOfDay = now - (now % 86400);
   const endOfDay = startOfDay + 86400;
