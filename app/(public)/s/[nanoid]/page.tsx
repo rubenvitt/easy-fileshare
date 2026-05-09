@@ -20,6 +20,7 @@ export default async function SharePage({ params }: PageProps) {
 
   if (!share) notFound();
 
+  // eslint-disable-next-line react-hooks/purity -- Server component value is evaluated per request.
   const now = Math.floor(Date.now() / 1000);
 
   if (share.expiresAt < now) {
