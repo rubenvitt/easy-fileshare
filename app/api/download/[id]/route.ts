@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
 import { db } from "@/lib/db";
 import { shares, shareFiles, downloadLogs } from "@/lib/db/schema";
 import { eq, sql } from "drizzle-orm";
@@ -64,28 +65,38 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "File not found" }, { status: 404 });
   }
 
-  const { stream, contentLength, contentType } = await getObjectStream(file.s3Key);
+  const { stream, contentLength, contentType } = await getObjectStream(
+    file.s3Key,
+    req.signal
+  );
 
-  const newCount = share.downloadCount + 1;
-  const limitJustReached =
-    share.maxDownloads !== null && newCount >= share.maxDownloads;
-
-  await db
-    .update(shares)
-    .set({
-      downloadCount: sql`${shares.downloadCount} + 1`,
-      ...(limitJustReached && !share.limitReachedAt
-        ? { limitReachedAt: now }
-        : {}),
-    })
-    .where(eq(shares.id, id));
-
-  await db.insert(downloadLogs).values({
-    id: nanoid(10),
-    shareId: id,
-    fileId: fileId,
-    ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? req.headers.get("x-real-ip") ?? null,
-    userAgent: req.headers.get("user-agent") ?? null,
+  // Zähler/Log laufen NACH der Response (after), nicht im kritischen Pfad — der
+  // Download startet sofort und ein DB-Fehler kann ihn nicht blockieren.
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    req.headers.get("x-real-ip") ??
+    null;
+  const userAgent = req.headers.get("user-agent") ?? null;
+  after(() => {
+    try {
+      const newCount = share.downloadCount + 1;
+      const limitJustReached =
+        share.maxDownloads !== null && newCount >= share.maxDownloads;
+      db.update(shares)
+        .set({
+          downloadCount: sql`${shares.downloadCount} + 1`,
+          ...(limitJustReached && !share.limitReachedAt
+            ? { limitReachedAt: now }
+            : {}),
+        })
+        .where(eq(shares.id, id))
+        .run();
+      db.insert(downloadLogs)
+        .values({ id: nanoid(10), shareId: id, fileId, ip, userAgent })
+        .run();
+    } catch (e) {
+      console.error("[download] failed to record download:", e);
+    }
   });
 
   return new Response(stream as ReadableStream, {

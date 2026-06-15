@@ -92,7 +92,8 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
   }
 
   const { stream, contentLength, contentType } = await getObjectStream(
-    file.s3Key
+    file.s3Key,
+    req.signal
   );
 
   const isText =
