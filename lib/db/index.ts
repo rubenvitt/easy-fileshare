@@ -12,6 +12,9 @@ export function getDb() {
     const sqlite = new Database(dbPath);
     sqlite.pragma("journal_mode = WAL");
     sqlite.pragma("foreign_keys = ON");
+    // Schreib-Lock-Konkurrenz (z. B. Cleanup-Cron + Download) wartet begrenzt
+    // statt sofort SQLITE_BUSY zu werfen — explizit gesetzt statt SDK-Default.
+    sqlite.pragma("busy_timeout = 5000");
     _db = drizzle(sqlite, { schema });
 
     // Auto-migrate on first connection

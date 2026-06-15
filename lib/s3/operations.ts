@@ -60,9 +60,13 @@ export async function abortMultipartUpload(key: string, uploadId: string) {
   );
 }
 
-export async function getObjectStream(key: string) {
+export async function getObjectStream(key: string, abortSignal?: AbortSignal) {
+  // abortSignal an den S3-Request koppeln: bricht der Client den Download ab,
+  // wird die GetObject-Anfrage abgebrochen und der Socket sofort freigegeben.
+  // Ohne das leckt jeder mittendrin abgebrochene Download einen Socket.
   const { Body, ContentLength, ContentType } = await s3.send(
-    new GetObjectCommand({ Bucket: S3_BUCKET, Key: key })
+    new GetObjectCommand({ Bucket: S3_BUCKET, Key: key }),
+    { abortSignal }
   );
   return {
     stream: Body!.transformToWebStream(),
